@@ -24,7 +24,7 @@
 Only hunks (lines between @@ ... @@) are considered for the content.
 This mirrors the original parser used by the chat UI."
   (let ((orig '()) (new '()) in-hunk)
-    (dolist (l (split-string diff-text "\n"))
+    (dolist (l (split-string diff-text "\r?\n"))
       (cond
        ((string-match "^@@.*@@$" l) (setq in-hunk t))
        ((and in-hunk (string-prefix-p " " l))
