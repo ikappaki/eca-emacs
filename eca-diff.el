@@ -19,12 +19,22 @@
 (require 'seq)
 (require 'subr-x)
 
+(defun detect-eol (s)
+  "Detect the end-of-line style used in string S.
+Returns \"\\n\" for Unix, \"\\r\\n\" for Windows, \"\\r\" for old Mac, or nil if no EOL found."
+  (cond
+   ((string-match-p "\r\n" s) "\r\n")  ;; Windows
+   ((string-match-p "\n" s) "\n")      ;; Unix
+   ((string-match-p "\r" s) "\r")      ;; Old Mac
+   (t nil)))
+
 (defun eca-diff-parse-unified-diff (diff-text)
   "Parse DIFF-TEXT and return a plist with :original and :new strings.
 Only hunks (lines between @@ ... @@) are considered for the content.
 This mirrors the original parser used by the chat UI."
-  (let ((orig '()) (new '()) in-hunk)
-    (dolist (l (split-string diff-text "\r?\n"))
+  (let ((orig '()) (new '()) in-hunk
+        (eol (detect-eol diff-text)))
+    (dolist (l (split-string diff-text "\n"))
       (cond
        ((string-match "^@@.*@@$" l) (setq in-hunk t))
        ((and in-hunk (string-prefix-p " " l))
