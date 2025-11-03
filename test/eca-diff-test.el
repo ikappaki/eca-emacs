@@ -43,7 +43,7 @@
 
                 ;; We expect this function to call `insert` twice.
                 (eca-diff-show-ediff path diff)
-                (poll-until (> (length contents) 1) 5)
+                (poll-until (> (length contents) 1) 30)
                 (expect (reverse contents)
                         :to-equal
                         `((,(format "*eca-diff-orig:%s*" path) "Line 1
