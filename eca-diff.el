@@ -19,22 +19,12 @@
 (require 'seq)
 (require 'subr-x)
 
-(defun detect-eol (s)
-  "Detect the end-of-line style used in string S.
-Returns \"\\n\" for Unix, \"\\r\\n\" for Windows, \"\\r\" for old Mac, or nil if no EOL found."
-  (cond
-   ((string-match-p "\r\n" s) "\r\n")  ;; Windows
-   ((string-match-p "\n" s) "\n")      ;; Unix
-   ((string-match-p "\r" s) "\r")      ;; Old Mac
-   (t nil)))
-
 (defun eca-diff-parse-unified-diff (diff-text)
   "Parse DIFF-TEXT and return a plist with :original and :new strings.
 Only hunks (lines between @@ ... @@) are considered for the content.
 This mirrors the original parser used by the chat UI."
-  (let ((orig '()) (new '()) in-hunk
-        (eol (detect-eol diff-text)))
-    (dolist (l (split-string diff-text eol))
+  (let ((orig '()) (new '()) in-hunk)
+    (dolist (l (split-string diff-text "\n"))
       (cond
        ((string-match "^@@.*@@$" l) (setq in-hunk t))
        ((and in-hunk (string-prefix-p " " l))
@@ -43,8 +33,8 @@ This mirrors the original parser used by the chat UI."
         (push (substring l 1) orig))
        ((and in-hunk (string-prefix-p "+" l))
         (push (substring l 1) new))))
-    (list :original (string-join (nreverse orig) eol)
-          :new      (string-join (nreverse new) eol))))
+    (list :original (string-join (nreverse orig) "\n")
+          :new      (string-join (nreverse new) "\n"))))
 
 (defun eca-diff--default-redisplay-fn (chat-buf)
   "Default redisplay function used when a chat RE-DISPLAY-FN is not provided.
@@ -61,7 +51,9 @@ ROOTS may be passed for path relativization if desired.
 
 This function tries to be Doom-compatible when Emacs runs Doom popup
 system (it ignores those popup rules for the generated ediff buffers)."
-  (let* ((parsed        (eca-diff-parse-unified-diff diff))
+  (let* (;; ediff expects `\n` line endings.
+         (diff (replace-regexp-in-string "\r\n" "\n" diff))
+         (parsed        (eca-diff-parse-unified-diff diff))
          (orig          (plist-get parsed :original))
          (new           (plist-get parsed :new))
          (buf-orig      (generate-new-buffer (format "*eca-diff-orig:%s*" path)))
